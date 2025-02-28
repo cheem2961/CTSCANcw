@@ -25,6 +25,7 @@ public class test extends Application {
 
 	int currZSlice=128;
 	int currYSlice=128;
+	int currXSlice=128;
 
     @Override
     public void start(Stage stage) throws FileNotFoundException {
@@ -45,19 +46,33 @@ public class test extends Application {
 
 		WritableImage sliceYImage = new WritableImage(256, 256); //allocate memory for the image
 		GetYSlice(currYSlice, sliceYImage); //make the image - in this case go get the slice and copy it into the image
+
+		WritableImage sliceXImage = new WritableImage(256, 256); //allocate memory for the image
+		GetXSlice(currXSlice, sliceXImage); //make the image - in this case go get the slice and copy it into the image
 		//2. We link a view in the GUI to that image
-		ImageView sliceXView = new ImageView(sliceZImage); //and then see 3. below
+		ImageView sliceZView = new ImageView(sliceZImage); //and then see 3. below
 		ImageView sliceYView = new ImageView(sliceYImage); //and then see 3. below
+		ImageView sliceXView = new ImageView(sliceXImage); //and then see 3. below
 
 		// Do the same for MIP
 		WritableImage MIPZImage = new WritableImage(256, 256);
 		GetZMIP(MIPZImage);
 		ImageView MIPZView = new ImageView(MIPZImage);
 
+		WritableImage MIPYImage = new WritableImage(256, 256);
+		GetYMIP(MIPYImage);
+		ImageView MIPYView = new ImageView(MIPYImage);
+
+		WritableImage MIPXImage = new WritableImage(256, 256);
+		GetXMIP(MIPXImage);
+		ImageView MIPXView = new ImageView(MIPXImage);
+
 		//Create the simple GUI
 		Slider sliceZSlider = new Slider(0, 255, currZSlice);
 
 		Slider sliceYSlider = new Slider(0, 255, currYSlice);
+
+		Slider sliceXSlider = new Slider(0, 255, currXSlice);
 		
 		sliceZSlider.valueProperty().addListener(new ChangeListener<Number>() { 
 			public void changed(ObservableValue <? extends Number >  
@@ -79,7 +94,19 @@ public class test extends Application {
 				//System.out.println(currZSlice);
 				//We update our Image
 				GetYSlice(currYSlice, sliceYImage); //go get the slice image
-				//Because sliceZView (an ImageView) is linked to it, this will automatically update the displayed image in the GUI
+				//Because sliceYView (an ImageView) is linked to it, this will automatically update the displayed image in the GUI
+			}
+		});
+
+		sliceXSlider.valueProperty().addListener(new ChangeListener<Number>() {
+			public void changed(ObservableValue <? extends Number >
+										observable, Number oldValue, Number newValue) {
+
+				currXSlice = newValue.intValue();
+				//System.out.println(currZSlice);
+				//We update our Image
+				GetXSlice(currXSlice, sliceXImage); //go get the slice image
+				//Because sliceXView (an ImageView) is linked to it, this will automatically update the displayed image in the GUI
 			}
 		});
 
@@ -87,16 +114,20 @@ public class test extends Application {
 		//I'll start a grid for you
 		GridPane grid = new GridPane();
         grid.add(sliceZSlider, 0, 0); // Slider at column 0, row 0
-
 		grid.add(sliceYSlider, 1, 0); // Slider at column 0, row 0
+		grid.add(sliceXSlider, 2, 0); // Slider at column 0, row 0
         grid.setHgap(10);
         grid.setVgap(10);
 
         //3. (referring to the 3 things we need to display an image)
       	//we need to add it to the grid
-		grid.add(sliceXView, 0, 1); // Slider at column 0, row 1
+		grid.add(sliceZView, 0, 1); // Slider at column 0, row 1
 		grid.add(sliceYView, 1, 1);
+		grid.add(sliceXView, 2, 1);
+
 		grid.add(MIPZView, 0, 2); // Slider at column 0, row 1
+		grid.add(MIPYView, 1, 2);
+		grid.add(MIPXView, 2, 2);
 		
 
 		// Create a scene and set the stage
@@ -110,7 +141,8 @@ public class test extends Application {
 	//Function to read in the cthead data set
 	public void ReadData() throws IOException {
 		//If you've put the test.java in a directory called "src" and put the dataset in the parent directory, then this will be the correct path
-		File file = new File("coursework/src/CThead-256cubed.bin");
+		//adrian change to fuck luca change to CTSCANcw
+		File file = new File("CTSCANcw/coursework/src/CThead-256cubed.bin");
 		//Read the data quickly via a buffer (in C++ you can just do a single fread - I couldn't find the equivalent in Java)
 		DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
 		
@@ -161,10 +193,64 @@ public class test extends Application {
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				//Implement MIP here
-				
+				float total = 0;
+				for (int z = 0; z < width; z++) {
+					total = Math.max(total, grey[z][y][x]);
+				}
+				System.out.println(total);
 				//But I'll just make a white colour and copy it into the image
-				Color color=Color.color(1.0, 1.0, 1.0);
+				Color color = Color.color(total, total, total);
 				
+				//Apply the new colour
+				image_writer.setColor(x, y, color);
+			}
+		}
+	}
+
+	public void GetYMIP(WritableImage image) {
+		//Find the width and height of the image to be process
+		int width = (int)image.getWidth();
+		int height = (int)image.getHeight();
+
+		//Get an interface to write to that image memory
+		PixelWriter image_writer = image.getPixelWriter();
+
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				//Implement MIP here
+				double total = 0;
+				for (int z = 0; z < width; z++) {
+					total = Math.max(total, grey[y][z][x]);
+				}
+
+				//But I'll just make a white colour and copy it into the image
+				Color color = Color.color(total, total, total);
+
+				//Apply the new colour
+				image_writer.setColor(x, y, color);
+			}
+		}
+	}
+
+	public void GetXMIP(WritableImage image) {
+		//Find the width and height of the image to be process
+		int width = (int)image.getWidth();
+		int height = (int)image.getHeight();
+
+		//Get an interface to write to that image memory
+		PixelWriter image_writer = image.getPixelWriter();
+
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				//Implement MIP here
+				double total = 0;
+				for (int z = 0; z < width; z++) {
+					total = Math.max(total, grey[y][x][z]);
+				}
+
+				//But I'll just make a white colour and copy it into the image
+				Color color = Color.color(total, total, total);
+
 				//Apply the new colour
 				image_writer.setColor(x, y, color);
 			}
@@ -209,6 +295,31 @@ public class test extends Application {
 			for (int x = 0; x < width; x++) {
 				//I'm going to get the middle slice as an example
 				val = grey[y][slice][x];
+
+				//Or uncomment this to make a grey image dependent on the slider value so you can see how the GUI updates
+				//val = (float) slice / 255.f;
+
+				Color color=Color.color(val, val, val);
+				//Apply the new colour
+				image_writer.setColor(x, y, color);
+			}
+		}
+	}
+
+	public void GetXSlice(int slice, WritableImage image) {
+		//Find the width and height of the image to be process
+		int width = (int)image.getWidth();
+		int height = (int)image.getHeight();
+		float val;
+
+		//Get an interface to write to that image memory
+		PixelWriter image_writer = image.getPixelWriter();
+
+		//Iterate over all pixels
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				//I'm going to get the middle slice as an example
+				val = grey[y][x][slice];
 
 				//Or uncomment this to make a grey image dependent on the slider value so you can see how the GUI updates
 				//val = (float) slice / 255.f;
