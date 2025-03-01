@@ -42,13 +42,13 @@ public class test extends Application {
 		//We need 3 things to see an image
 		//1. We need to create the image
 		WritableImage sliceZImage = new WritableImage(256, 256); //allocate memory for the image
-		GetZSlice(currZSlice, sliceZImage); //make the image - in this case go get the slice and copy it into the image
+		GetSlice(currZSlice, sliceZImage, "Z"); //make the image - in this case go get the slice and copy it into the image
 
 		WritableImage sliceYImage = new WritableImage(256, 256); //allocate memory for the image
-		GetYSlice(currYSlice, sliceYImage); //make the image - in this case go get the slice and copy it into the image
+		GetSlice(currYSlice, sliceYImage, "Y"); //make the image - in this case go get the slice and copy it into the image
 
 		WritableImage sliceXImage = new WritableImage(256, 256); //allocate memory for the image
-		GetXSlice(currXSlice, sliceXImage); //make the image - in this case go get the slice and copy it into the image
+		GetSlice(currXSlice, sliceXImage, "X"); //make the image - in this case go get the slice and copy it into the image
 		//2. We link a view in the GUI to that image
 		ImageView sliceZView = new ImageView(sliceZImage); //and then see 3. below
 		ImageView sliceYView = new ImageView(sliceYImage); //and then see 3. below
@@ -56,15 +56,15 @@ public class test extends Application {
 
 		// Do the same for MIP
 		WritableImage MIPZImage = new WritableImage(256, 256);
-		GetZMIP(MIPZImage);
+		GetMIP(MIPZImage, "Z");
 		ImageView MIPZView = new ImageView(MIPZImage);
 
 		WritableImage MIPYImage = new WritableImage(256, 256);
-		GetYMIP(MIPYImage);
+		GetMIP(MIPYImage, "Y");
 		ImageView MIPYView = new ImageView(MIPYImage);
 
 		WritableImage MIPXImage = new WritableImage(256, 256);
-		GetXMIP(MIPXImage);
+		GetMIP(MIPXImage, "X");
 		ImageView MIPXView = new ImageView(MIPXImage);
 
 		//Create the simple GUI
@@ -81,7 +81,7 @@ public class test extends Application {
 				currZSlice = newValue.intValue();
 				//System.out.println(currZSlice);
 				//We update our Image
-		        GetZSlice(currZSlice, sliceZImage); //go get the slice image
+		        GetSlice(currZSlice, sliceZImage, "Z"); //go get the slice image
 				//Because sliceZView (an ImageView) is linked to it, this will automatically update the displayed image in the GUI
             } 
         });
@@ -93,7 +93,7 @@ public class test extends Application {
 				currYSlice = newValue.intValue();
 				//System.out.println(currZSlice);
 				//We update our Image
-				GetYSlice(currYSlice, sliceYImage); //go get the slice image
+				GetSlice(currYSlice, sliceYImage, "Y"); //go get the slice image
 				//Because sliceYView (an ImageView) is linked to it, this will automatically update the displayed image in the GUI
 			}
 		});
@@ -105,7 +105,7 @@ public class test extends Application {
 				currXSlice = newValue.intValue();
 				//System.out.println(currZSlice);
 				//We update our Image
-				GetXSlice(currXSlice, sliceXImage); //go get the slice image
+				GetSlice(currXSlice, sliceXImage, "X"); //go get the slice image
 				//Because sliceXView (an ImageView) is linked to it, this will automatically update the displayed image in the GUI
 			}
 		});
@@ -182,10 +182,10 @@ public class test extends Application {
 		//and grey is 0-1 float data that can be displayed by Java
 	}
 
-	public void GetZMIP(WritableImage image) {
+	public void GetMIP(WritableImage image, String axis) {
 		//Find the width and height of the image to be process
 		int width = (int)image.getWidth();
-        int height = (int)image.getHeight();
+		int height = (int)image.getHeight();
 
 		//Get an interface to write to that image memory
 		PixelWriter image_writer = image.getPixelWriter();
@@ -195,34 +195,14 @@ public class test extends Application {
 				//Implement MIP here
 				float total = 0;
 				for (int z = 0; z < width; z++) {
-					total = Math.max(total, grey[z][y][x]);
+					if (axis == "Z") {
+						total = Math.max(total, grey[z][y][x]);
+					} else if (axis == "Y") {
+						total = Math.max(total, grey[y][z][x]);
+					} else {
+						total = Math.max(total, grey[y][x][z]);
+					}
 				}
-				System.out.println(total);
-				//But I'll just make a white colour and copy it into the image
-				Color color = Color.color(total, total, total);
-				
-				//Apply the new colour
-				image_writer.setColor(x, y, color);
-			}
-		}
-	}
-
-	public void GetYMIP(WritableImage image) {
-		//Find the width and height of the image to be process
-		int width = (int)image.getWidth();
-		int height = (int)image.getHeight();
-
-		//Get an interface to write to that image memory
-		PixelWriter image_writer = image.getPixelWriter();
-
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				//Implement MIP here
-				double total = 0;
-				for (int z = 0; z < width; z++) {
-					total = Math.max(total, grey[y][z][x]);
-				}
-
 				//But I'll just make a white colour and copy it into the image
 				Color color = Color.color(total, total, total);
 
@@ -232,56 +212,7 @@ public class test extends Application {
 		}
 	}
 
-	public void GetXMIP(WritableImage image) {
-		//Find the width and height of the image to be process
-		int width = (int)image.getWidth();
-		int height = (int)image.getHeight();
-
-		//Get an interface to write to that image memory
-		PixelWriter image_writer = image.getPixelWriter();
-
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				//Implement MIP here
-				double total = 0;
-				for (int z = 0; z < width; z++) {
-					total = Math.max(total, grey[y][x][z]);
-				}
-
-				//But I'll just make a white colour and copy it into the image
-				Color color = Color.color(total, total, total);
-
-				//Apply the new colour
-				image_writer.setColor(x, y, color);
-			}
-		}
-	}
-
-	public void GetZSlice(int slice, WritableImage image) {
-		//Find the width and height of the image to be process
-		int width = (int)image.getWidth();
-        int height = (int)image.getHeight();
-		float val;
-
-		//Get an interface to write to that image memory
-		PixelWriter image_writer = image.getPixelWriter();
-
-		//Iterate over all pixels
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				//I'm going to get the middle slice as an example
-				val = grey[slice][y][x];
-
-				//Or uncomment this to make a grey image dependent on the slider value so you can see how the GUI updates
-				//val = (float) slice / 255.f;
-
-				Color color=Color.color(val, val, val);
-				//Apply the new colour
-				image_writer.setColor(x, y, color);
-			}
-		}
-	}
-	public void GetYSlice(int slice, WritableImage image) {
+	public void GetSlice(int slice, WritableImage image, String axis) {
 		//Find the width and height of the image to be process
 		int width = (int)image.getWidth();
 		int height = (int)image.getHeight();
@@ -294,7 +225,13 @@ public class test extends Application {
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				//I'm going to get the middle slice as an example
-				val = grey[y][slice][x];
+				if (axis == "Z") {
+					val = grey[slice][y][x];
+				} else if (axis == "Y") {
+					val = grey[y][slice][x];
+				} else {
+					val = grey[y][x][slice];
+				}
 
 				//Or uncomment this to make a grey image dependent on the slider value so you can see how the GUI updates
 				//val = (float) slice / 255.f;
@@ -305,33 +242,6 @@ public class test extends Application {
 			}
 		}
 	}
-
-	public void GetXSlice(int slice, WritableImage image) {
-		//Find the width and height of the image to be process
-		int width = (int)image.getWidth();
-		int height = (int)image.getHeight();
-		float val;
-
-		//Get an interface to write to that image memory
-		PixelWriter image_writer = image.getPixelWriter();
-
-		//Iterate over all pixels
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				//I'm going to get the middle slice as an example
-				val = grey[y][x][slice];
-
-				//Or uncomment this to make a grey image dependent on the slider value so you can see how the GUI updates
-				//val = (float) slice / 255.f;
-
-				Color color=Color.color(val, val, val);
-				//Apply the new colour
-				image_writer.setColor(x, y, color);
-			}
-		}
-	}
-	
-
 	
     public static void main(String[] args) {
         launch();
