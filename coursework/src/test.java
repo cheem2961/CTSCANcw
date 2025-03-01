@@ -67,6 +67,19 @@ public class test extends Application {
 		GetMIP(MIPXImage, "X");
 		ImageView MIPXView = new ImageView(MIPXImage);
 
+		// Do the same for VR
+		WritableImage VRZImage = new WritableImage(256, 256);
+		GetVR(VRZImage, "Z");
+		ImageView VRZView = new ImageView(VRZImage);
+
+		WritableImage VRYImage = new WritableImage(256, 256);
+		GetVR(VRYImage, "Y");
+		ImageView VRYView = new ImageView(VRYImage);
+
+		WritableImage VRXImage = new WritableImage(256, 256);
+		GetVR(VRXImage, "X");
+		ImageView VRXView = new ImageView(VRXImage);
+
 		//Create the simple GUI
 		Slider sliceZSlider = new Slider(0, 255, currZSlice);
 
@@ -116,19 +129,22 @@ public class test extends Application {
         grid.add(sliceZSlider, 0, 0); // Slider at column 0, row 0
 		grid.add(sliceYSlider, 1, 0); // Slider at column 0, row 0
 		grid.add(sliceXSlider, 2, 0); // Slider at column 0, row 0
-        grid.setHgap(10);
-        grid.setVgap(10);
+        grid.setHgap(2);
+        grid.setVgap(2);
 
         //3. (referring to the 3 things we need to display an image)
       	//we need to add it to the grid
-		grid.add(sliceZView, 0, 1); // Slider at column 0, row 1
+		grid.add(sliceZView, 0, 1);
 		grid.add(sliceYView, 1, 1);
 		grid.add(sliceXView, 2, 1);
 
-		grid.add(MIPZView, 0, 2); // Slider at column 0, row 1
+		grid.add(MIPZView, 0, 2);
 		grid.add(MIPYView, 1, 2);
 		grid.add(MIPXView, 2, 2);
-		
+
+		grid.add(VRZView, 0, 3);
+		grid.add(VRYView, 1, 3);
+		grid.add(VRXView, 2, 3);
 
 		// Create a scene and set the stage
         Scene scene = new Scene(grid, 800, 840);
@@ -180,6 +196,60 @@ public class test extends Application {
 		}
 		//At this point, cthead is the original dataset
 		//and grey is 0-1 float data that can be displayed by Java
+	}
+
+	public void GetVR(WritableImage image, String axis) {
+		//Find the width and height of the image to be process
+		int width = (int)image.getWidth();
+		int height = (int)image.getHeight();
+
+		//Get an interface to write to that image memory
+		PixelWriter image_writer = image.getPixelWriter();
+
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				//Implement VR here
+				float L = 1.0f;
+				float[] Ca = {0.0f, 0.0f, 0.0f};
+				for (int z = 0; z < width; z++) {
+
+					float CTval = 0.0f;
+
+					if (axis == "Z") {
+						CTval = cthead[width - z - 1][y][x];
+					} else if (axis == "Y") {
+						CTval = cthead[y][width - z - 1][x];
+					} else {
+						CTval = cthead[y][x][width - z - 1];
+					}
+
+					if (CTval >= -300 && CTval <= 49) {
+						float sigma = 0.12f;
+						Ca = new float[]{
+								sigma * L * 0.82f + Ca[0] * (1 - sigma),
+								sigma * L * 0.49f + Ca[1] * (1 - sigma),
+								sigma * L * 0.18f + Ca[2] * (1 - sigma)};
+					} else if ((CTval >= 50 && CTval <= 299) || (CTval < -300)) {
+						float sigma = 0.0f;
+						Ca = new float[]{
+								sigma * L * 0.0f + Ca[0] * (1 - sigma),
+								sigma * L * 0.0f + Ca[1] * (1 - sigma),
+								sigma * L * 0.0f + Ca[2] * (1 - sigma)};
+					} else {
+						float sigma = 0.8f;
+						Ca = new float[]{
+								sigma * L * 1.0f + Ca[0] * (1 - sigma),
+								sigma * L * 1.0f + Ca[1] * (1 - sigma),
+								sigma * L * 1.0f + Ca[2] * (1 - sigma)};
+					}
+
+				}
+				Color color = Color.color(Ca[0], Ca[1], Ca[2]);
+
+				//Apply the new colour
+				image_writer.setColor(x, y, color);
+			}
+		}
 	}
 
 	public void GetMIP(WritableImage image, String axis) {
@@ -242,7 +312,7 @@ public class test extends Application {
 			}
 		}
 	}
-	
+
     public static void main(String[] args) {
         launch();
     }
