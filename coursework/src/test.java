@@ -27,6 +27,10 @@ public class test extends Application {
 	int currYSlice=128;
 	int currXSlice=128;
 
+	float sigma1 = 0;
+	float sigma2 = 0;
+	float sigma3 = 0;
+
     @Override
     public void start(Stage stage) throws FileNotFoundException {
 		stage.setTitle("CThead Viewer");
@@ -67,18 +71,21 @@ public class test extends Application {
 		GetMIP(MIPXImage, "X");
 		ImageView MIPXView = new ImageView(MIPXImage);
 
+
+
 		// Do the same for VR
 		WritableImage VRZImage = new WritableImage(256, 256);
-		GetVR(VRZImage, "Z");
+		GetVR(VRZImage, "Z",50);
 		ImageView VRZView = new ImageView(VRZImage);
 
 		WritableImage VRYImage = new WritableImage(256, 256);
-		GetVR(VRYImage, "Y");
+		GetVR(VRYImage, "Y",50);
 		ImageView VRYView = new ImageView(VRYImage);
 
 		WritableImage VRXImage = new WritableImage(256, 256);
-		GetVR(VRXImage, "X");
+		GetVR(VRXImage, "X",50);
 		ImageView VRXView = new ImageView(VRXImage);
+
 
 		//Create the simple GUI
 		Slider sliceZSlider = new Slider(0, 255, currZSlice);
@@ -86,6 +93,14 @@ public class test extends Application {
 		Slider sliceYSlider = new Slider(0, 255, currYSlice);
 
 		Slider sliceXSlider = new Slider(0, 255, currXSlice);
+
+
+
+		Slider sigma1Slider = new Slider(0, 100, sigma1);
+
+		Slider sigma2Slider = new Slider(0, 100, sigma2);
+
+		Slider sigma3Slider = new Slider(0, 100, sigma3);
 		
 		sliceZSlider.valueProperty().addListener(new ChangeListener<Number>() { 
 			public void changed(ObservableValue <? extends Number >  
@@ -123,12 +138,59 @@ public class test extends Application {
 			}
 		});
 
+
+
+
+
+		sigma1Slider.valueProperty().addListener(new ChangeListener<Number>() {
+			public void changed(ObservableValue <? extends Number >
+										observable, Number oldValue, Number newValue) {
+
+				sigma1 = newValue.intValue();
+				//System.out.println(currZSlice);
+				//We update our Image
+				GetVR(VRZImage, "Z", sigma1);
+
+				//Because sliceZView (an ImageView) is linked to it, this will automatically update the displayed image in the GUI
+			}
+		});
+
+		sigma2Slider.valueProperty().addListener(new ChangeListener<Number>() {
+			public void changed(ObservableValue <? extends Number >
+										observable, Number oldValue, Number newValue) {
+
+				sigma2 = newValue.intValue();
+				//System.out.println(currZSlice);
+				//We update our Image
+				GetVR(VRZImage, "Y", sigma2);
+				//Because sliceZView (an ImageView) is linked to it, this will automatically update the displayed image in the GUI
+			}
+		});
+
+		sigma3Slider.valueProperty().addListener(new ChangeListener<Number>() {
+			public void changed(ObservableValue <? extends Number >
+										observable, Number oldValue, Number newValue) {
+
+				sigma3 = newValue.intValue();
+				//System.out.println(currZSlice);
+				//We update our Image
+
+				GetVR(VRZImage, "X", sigma3);
+				//Because sliceZView (an ImageView) is linked to it, this will automatically update the displayed image in the GUI
+			}
+		});
+
 		//Add all the GUI elements
 		//I'll start a grid for you
 		GridPane grid = new GridPane();
         grid.add(sliceZSlider, 0, 0); // Slider at column 0, row 0
 		grid.add(sliceYSlider, 1, 0); // Slider at column 0, row 0
 		grid.add(sliceXSlider, 2, 0); // Slider at column 0, row 0
+
+		grid.add(sigma1Slider, 0, 4); // Slider at column 0, row 0
+		grid.add(sigma2Slider, 1, 4); // Slider at column 0, row 0
+		grid.add(sigma3Slider, 2, 4); // Slider at column 0, row 0
+
         grid.setHgap(2);
         grid.setVgap(2);
 
@@ -158,7 +220,7 @@ public class test extends Application {
 	public void ReadData() throws IOException {
 		//If you've put the test.java in a directory called "src" and put the dataset in the parent directory, then this will be the correct path
 		//adrian change to fuck luca change to CTSCANcw
-		File file = new File("CTSCANcw/coursework/src/CThead-256cubed.bin");
+		File file = new File("coursework/src/CThead-256cubed.bin");
 		//Read the data quickly via a buffer (in C++ you can just do a single fread - I couldn't find the equivalent in Java)
 		DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
 		
@@ -198,7 +260,7 @@ public class test extends Application {
 		//and grey is 0-1 float data that can be displayed by Java
 	}
 
-	public void GetVR(WritableImage image, String axis) {
+	public void GetVR(WritableImage image, String axis, float L) {
 		//Find the width and height of the image to be process
 		int width = (int)image.getWidth();
 		int height = (int)image.getHeight();
@@ -206,10 +268,13 @@ public class test extends Application {
 		//Get an interface to write to that image memory
 		PixelWriter image_writer = image.getPixelWriter();
 
+		//normalisation
+		L /= 100f;
+
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
-				//Implement VR here
-				float L = 1.0f;
+
+
 				float[] Ca = {0.0f, 0.0f, 0.0f};
 				for (int z = 0; z < width; z++) {
 
