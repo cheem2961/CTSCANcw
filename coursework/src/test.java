@@ -19,15 +19,15 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 public class test extends Application {
-	short cthead[][][]; //store the 3D volume data set
-	float grey[][][]; //store the 3D volume data set converted to 0-1 ready to copy to the image
-	short min, max; //min/max value in the 3D volume data set
+	short cthead[][][]; //dataset
+	float grey[][][]; //normalised
+	short min, max;
 
-	int currZSlice=128;
+	int currZSlice=128; //image start slices
 	int currYSlice=128;
 	int currXSlice=128;
 
-	float sigma1 = 0;
+	float sigma1 = 0; //opacity start slices
 	float sigma2 = 0;
 	float sigma3 = 0;
 
@@ -43,20 +43,18 @@ public class test extends Application {
 			return;
 		}
 
-		//We need 3 things to see an image
-		//1. We need to create the image
-		WritableImage sliceZImage = new WritableImage(256, 256); //allocate memory for the image
-		GetSlice(currZSlice, sliceZImage, "Z"); //make the image - in this case go get the slice and copy it into the image
+		WritableImage sliceZImage = new WritableImage(256, 256);
+		GetSlice(currZSlice, sliceZImage, "Z");
 
-		WritableImage sliceYImage = new WritableImage(256, 256); //allocate memory for the image
-		GetSlice(currYSlice, sliceYImage, "Y"); //make the image - in this case go get the slice and copy it into the image
+		WritableImage sliceYImage = new WritableImage(256, 256);
+		GetSlice(currYSlice, sliceYImage, "Y");
 
-		WritableImage sliceXImage = new WritableImage(256, 256); //allocate memory for the image
-		GetSlice(currXSlice, sliceXImage, "X"); //make the image - in this case go get the slice and copy it into the image
-		//2. We link a view in the GUI to that image
-		ImageView sliceZView = new ImageView(sliceZImage); //and then see 3. below
-		ImageView sliceYView = new ImageView(sliceYImage); //and then see 3. below
-		ImageView sliceXView = new ImageView(sliceXImage); //and then see 3. below
+		WritableImage sliceXImage = new WritableImage(256, 256);
+		GetSlice(currXSlice, sliceXImage, "X");
+
+		ImageView sliceZView = new ImageView(sliceZImage);
+		ImageView sliceYView = new ImageView(sliceYImage);
+		ImageView sliceXView = new ImageView(sliceXImage);
 
 		// Do the same for MIP
 		WritableImage MIPZImage = new WritableImage(256, 256);
@@ -75,19 +73,19 @@ public class test extends Application {
 
 		// Do the same for VR
 		WritableImage VRZImage = new WritableImage(256, 256);
-		GetVR(VRZImage, "Z",50);
+		GetVR(VRZImage, "Z",100);
 		ImageView VRZView = new ImageView(VRZImage);
 
 		WritableImage VRYImage = new WritableImage(256, 256);
-		GetVR(VRYImage, "Y",50);
+		GetVR(VRYImage, "Y",100);
 		ImageView VRYView = new ImageView(VRYImage);
 
 		WritableImage VRXImage = new WritableImage(256, 256);
-		GetVR(VRXImage, "X",50);
+		GetVR(VRXImage, "X",100);
 		ImageView VRXView = new ImageView(VRXImage);
 
 
-		//Create the simple GUI
+		//create sliders
 		Slider sliceZSlider = new Slider(0, 255, currZSlice);
 
 		Slider sliceYSlider = new Slider(0, 255, currYSlice);
@@ -162,7 +160,7 @@ public class test extends Application {
 				sigma2 = newValue.intValue();
 				//System.out.println(currZSlice);
 				//We update our Image
-				GetVR(VRZImage, "Y", sigma2);
+				GetVR(VRYImage, "Y", sigma2);
 				//Because sliceZView (an ImageView) is linked to it, this will automatically update the displayed image in the GUI
 			}
 		});
@@ -175,13 +173,12 @@ public class test extends Application {
 				//System.out.println(currZSlice);
 				//We update our Image
 
-				GetVR(VRZImage, "X", sigma3);
+				GetVR(VRXImage, "X", sigma3);
 				//Because sliceZView (an ImageView) is linked to it, this will automatically update the displayed image in the GUI
 			}
 		});
 
-		//Add all the GUI elements
-		//I'll start a grid for you
+		//gridpane to display the stuff
 		GridPane grid = new GridPane();
         grid.add(sliceZSlider, 0, 0); // Slider at column 0, row 0
 		grid.add(sliceYSlider, 1, 0); // Slider at column 0, row 0
@@ -194,8 +191,7 @@ public class test extends Application {
         grid.setHgap(2);
         grid.setVgap(2);
 
-        //3. (referring to the 3 things we need to display an image)
-      	//we need to add it to the grid
+      	//add it to the grid
 		grid.add(sliceZView, 0, 1);
 		grid.add(sliceYView, 1, 1);
 		grid.add(sliceXView, 2, 1);
@@ -208,7 +204,7 @@ public class test extends Application {
 		grid.add(VRYView, 1, 3);
 		grid.add(VRXView, 2, 3);
 
-		// Create a scene and set the stage
+		//scene
         Scene scene = new Scene(grid, 800, 840);
         stage.setTitle("CT Data Viewer");
         stage.setScene(scene);
@@ -216,39 +212,35 @@ public class test extends Application {
     }
     
 
-	//Function to read in the cthead data set
+	//read in the cthead data
 	public void ReadData() throws IOException {
-		//If you've put the test.java in a directory called "src" and put the dataset in the parent directory, then this will be the correct path
-		//adrian change to fuck luca change to CTSCANcw
-		File file = new File("coursework/src/CThead-256cubed.bin");
-		//Read the data quickly via a buffer (in C++ you can just do a single fread - I couldn't find the equivalent in Java)
+		//adrian change to coursework luca change to CTSCANcw
+		File file = new File("CTSCANcw/coursework/src/CThead-256cubed.bin");
 		DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
 		
-		int i, j, k; //loop through the 3D data set
+		int i, j, k;
 		
-		min=Short.MAX_VALUE; max=Short.MIN_VALUE; //set to extreme values
-		short read; //value read in
-		int b1, b2; //data is wrong Endian (check wikipedia) for Java so we need to swap the bytes around
+		min = Short.MAX_VALUE; max = Short.MIN_VALUE; //set to extreme values
+		short read; //read in
+		int b1, b2;
 		
-		cthead = new short[256][256][256]; //allocate the memory - note this is fixed for this data set
+		cthead = new short[256][256][256];
 		grey= new float[256][256][256];
-		//loop through the data reading it in
+		//read it through a loop
 		for (k=0; k<256; k++) {
 			for (j=0; j<256; j++) {
 				for (i=0; i<256; i++) {
-					//because the Endianess is wrong, it needs to be read byte at a time and swapped
-					b1=((int)in.readByte()) & 0xff; //the 0xff is because Java does not have unsigned types (C++ is so much easier!)
-					b2=((int)in.readByte()) & 0xff; //the 0xff is because Java does not have unsigned types (C++ is so much easier!)
-					read=(short)((b2<<8) | b1); //and swizzle the bytes around
-					if (read<min) min=read; //update the minimum
-					if (read>max) max=read; //update the maximum
-					cthead[k][j][i]=read; //put the short into memory (in C++ you can replace all this code with one fread)
+					b1=((int)in.readByte()) & 0xff;
+					b2=((int)in.readByte()) & 0xff;
+					read=(short)((b2<<8) | b1);
+					if (read<min) min=read;
+					if (read>max) max=read;
+					cthead[k][j][i]=read;
 				}
 			}
 		}
-		System.out.println(min+" "+max); //diagnostic - for CThead-256cubed.bin this should be -1897, 3029
-		//(i.e. there are 4927 levels of grey, and now we will normalise them to 0-1 for display purposes
-		//I know the min and max already, so I could have put the normalisation in the above loop, but I put it separate here
+		System.out.println(min+" "+max);
+
 		for (k=0; k<256; k++) {
 			for (j=0; j<256; j++) {
 				for (i=0; i<256; i++) {
@@ -256,16 +248,13 @@ public class test extends Application {
 				}
 			}
 		}
-		//At this point, cthead is the original dataset
-		//and grey is 0-1 float data that can be displayed by Java
 	}
 
 	public void GetVR(WritableImage image, String axis, float L) {
-		//Find the width and height of the image to be process
+		//width and height of the image
 		int width = (int)image.getWidth();
 		int height = (int)image.getHeight();
 
-		//Get an interface to write to that image memory
 		PixelWriter image_writer = image.getPixelWriter();
 
 		//normalisation
@@ -280,6 +269,7 @@ public class test extends Application {
 
 					float CTval = 0.0f;
 
+					//select axis
 					if (axis == "Z") {
 						CTval = cthead[width - z - 1][y][x];
 					} else if (axis == "Y") {
@@ -288,6 +278,7 @@ public class test extends Application {
 						CTval = cthead[y][x][width - z - 1];
 					}
 
+					//do the colour / opacity banding from the description
 					if (CTval >= -300 && CTval <= 49) {
 						float sigma = 0.12f;
 						Ca = new float[]{
@@ -310,25 +301,22 @@ public class test extends Application {
 
 				}
 				Color color = Color.color(Ca[0], Ca[1], Ca[2]);
-
-				//Apply the new colour
 				image_writer.setColor(x, y, color);
 			}
 		}
 	}
 
 	public void GetMIP(WritableImage image, String axis) {
-		//Find the width and height of the image to be process
 		int width = (int)image.getWidth();
 		int height = (int)image.getHeight();
 
-		//Get an interface to write to that image memory
 		PixelWriter image_writer = image.getPixelWriter();
 
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
-				//Implement MIP here
+
 				float total = 0;
+				//get max val along ray
 				for (int z = 0; z < width; z++) {
 					if (axis == "Z") {
 						total = Math.max(total, grey[z][y][x]);
@@ -338,28 +326,23 @@ public class test extends Application {
 						total = Math.max(total, grey[y][x][z]);
 					}
 				}
-				//But I'll just make a white colour and copy it into the image
-				Color color = Color.color(total, total, total);
 
-				//Apply the new colour
+				Color color = Color.color(total, total, total);
 				image_writer.setColor(x, y, color);
 			}
 		}
 	}
 
 	public void GetSlice(int slice, WritableImage image, String axis) {
-		//Find the width and height of the image to be process
 		int width = (int)image.getWidth();
 		int height = (int)image.getHeight();
 		float val;
 
-		//Get an interface to write to that image memory
 		PixelWriter image_writer = image.getPixelWriter();
 
-		//Iterate over all pixels
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
-				//I'm going to get the middle slice as an example
+				//choose axis
 				if (axis == "Z") {
 					val = grey[slice][y][x];
 				} else if (axis == "Y") {
@@ -368,11 +351,9 @@ public class test extends Application {
 					val = grey[y][x][slice];
 				}
 
-				//Or uncomment this to make a grey image dependent on the slider value so you can see how the GUI updates
 				//val = (float) slice / 255.f;
 
 				Color color=Color.color(val, val, val);
-				//Apply the new colour
 				image_writer.setColor(x, y, color);
 			}
 		}
